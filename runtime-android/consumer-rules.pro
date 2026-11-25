@@ -1,0 +1,1 @@
+-keep class com.woogit.aicore.runtime.android.NativeLlamaCpp { *; }

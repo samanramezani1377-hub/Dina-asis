@@ -1,0 +1,42 @@
+name: Android CI
+on:
+ push:
+  branches: [main, agent-assistant-prototype]
+ pull_request:
+  branches: [main]
+ workflow_dispatch:
+jobs:
+ verify:
+  runs-on: ubuntu-22.04
+  timeout-minutes: 45
+  steps:
+   - uses: actions/checkout@v4
+   - uses: actions/setup-java@v4
+     with: {distribution: temurin, java-version: "17"}
+   - uses: android-actions/setup-android@v3
+   - name: Install SDK and NDK
+     run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "ndk;27.2.12479018"
+   - uses: gradle/actions/setup-gradle@v4
+     with: {gradle-version: "8.13"}
+   - uses: actions/cache@v4
+     with:
+      path: runtime-android/.cxx
+      key: dina-native-${{ runner.os }}-${{ hashFiles('runtime-android/src/main/cpp/**', 'runtime-android/build.gradle.kts') }}
+   - name: Unit tests
+     run: gradle :app:testDebugUnitTest --stacktrace --console=plain
+   - name: Android lint
+     run: gradle :app:lintDebug --stacktrace --console=plain
+   - name: Debug APK
+     run: gradle :app:assembleDebug --stacktrace --console=plain
+   - name: Verify APK ABI
+     run: |
+      set -euo pipefail
+      apk=app/build/outputs/apk/debug/app-debug.apk
+      test -f "$apk"
+      abis="$(unzip -Z1 "$apk" | grep '^lib/' | cut -d/ -f2 | sort -u)"
+      test "$abis" = "arm64-v8a"
+   - uses: actions/upload-artifact@v4
+     with:
+      name: dina-agent-test-debug-apk
+      path: app/build/outputs/apk/debug/app-debug.apk
+      retention-days: 7
