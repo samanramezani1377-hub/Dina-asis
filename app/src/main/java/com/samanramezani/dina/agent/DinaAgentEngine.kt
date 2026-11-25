@@ -25,7 +25,12 @@ class DinaAgentEngine {
    NativeLlamaCpp.generate(buildPrompt(request),640,0.1f,40,0.9f,0.05f).collect { output.append(it) }
    output.toString()
   }
-  val plan=AgentPlanParser.parse(raw)
+  val plan=try { AgentPlanParser.parse(raw) } catch(t:Throwable) {
+   return JSONObject().put("report_type","DINA_AGENT_TEST_REPORT").put("status","FAILED")
+    .put("request",request).put("plan_parse_error",t.message ?: "invalid model output")
+    .put("raw_model_output",raw).put("simulation_only",true)
+    .put("real_accounting_system_touched",false).put("generated_at_epoch_ms",System.currentTimeMillis()).toString(2)
+  }
   if(plan.needsClarification) return report(request,raw,plan,emptyList(),"NEEDS_INPUT")
   val tools=SimulatedAccountingTools(); val results=mutableListOf<JSONObject>(); var failed=false
   for(step in plan.steps) {
@@ -51,6 +56,9 @@ class DinaAgentEngine {
  private fun report(request:String,raw:String,plan:AgentPlan,steps:List<JSONObject>,status:String)=JSONObject()
   .put("report_type","DINA_AGENT_TEST_REPORT").put("status",status).put("request",request)
   .put("plan_summary",plan.summary).put("clarification_questions",JSONArray(plan.questions))
-  .put("steps",JSONArray(steps)).put("raw_model_output",raw).put("simulation_only",true)
+  .put("planned_steps",JSONArray(plan.steps.map { JSONObject().put("id",it.id).put("tool",it.tool).put("arguments",it.arguments) }))
+  .put("executed_steps",JSONArray(steps)).put("raw_model_output",raw)
+  .put("model","Qwen 3.8 2B GGUF").put("runtime","llama.cpp Android").put("execution_backend","CPU")
+  .put("simulation_only",true)
   .put("real_accounting_system_touched",false).put("generated_at_epoch_ms",System.currentTimeMillis()).toString(2)
 }
