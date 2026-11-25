@@ -26,14 +26,14 @@ object NativeLlamaCpp {
         Log.i(TAG, "ACTIVATION_NATIVE_LIBRARY_LOAD_RETURNED")
     }
 
-    /** Prefer OpenCL where supported; native llama.cpp may place unsupported work on CPU. */
+    /** CPU-only initialization for the Dina agent prototype. */
     private fun ensureNativeInitialized() {
         synchronized(this) {
-            Log.i(TAG, "ACTIVATION_NATIVE_INIT_REQUESTED backend=OpenCL previously_initialized=$nativeInitialized")
+            Log.i(TAG, "ACTIVATION_NATIVE_INIT_REQUESTED backend=CPU_ONLY previously_initialized=$nativeInitialized")
             nativeInit(false)
             nativeInstallFatalHandlers()
             nativeInitialized = true
-            Log.i(TAG, "ACTIVATION_NATIVE_INIT_RETURNED backend=OpenCL")
+            Log.i(TAG, "ACTIVATION_NATIVE_INIT_RETURNED backend=CPU_ONLY")
         }
     }
 
