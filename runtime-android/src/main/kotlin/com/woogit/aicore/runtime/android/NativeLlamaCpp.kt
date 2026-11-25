@@ -106,7 +106,7 @@ object NativeLlamaCpp {
                 appendLine("file_size_mib=${if (file.isFile) file.length() / 1048576.0 else -1.0}")
                 appendLine("requested_context=$contextLength")
                 appendLine("gpu_layers=$gpuLayers")
-                appendLine("backend_mode=OpenCL_GPU_PREFERRED_CPU_FALLBACK_ALLOWED")
+                appendLine("backend_mode=CPU_ONLY_OPENCL_SKIPPED")
                 appendLine("device_mem_total_bytes=${memoryInfo.totalMem}")
                 appendLine("device_mem_available_bytes=${memoryInfo.availMem}")
                 appendLine("device_mem_available_mib=${memoryInfo.availMem / 1048576.0}")
