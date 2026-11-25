@@ -875,6 +875,16 @@ Java_com_woogit_aicore_runtime_android_NativeLlamaCpp_nativeInit(JNIEnv *env, jc
 
     std::lock_guard<std::mutex> lock(g_backend_init_mutex);
     if (!g_backend_initialized) {
+        // Dina prototype is intentionally CPU-only. Do not enumerate OpenCL
+        // platforms, load vendor drivers, register a GPU backend, or retry it.
+        if (!enable_gpu) {
+            g_gpu_backend_loaded = false;
+            append_native_trace("NATIVE_BACKEND_POLICY=CPU_ONLY_OPENCL_SKIPPED");
+            llama_backend_init();
+            g_backend_initialized = true;
+            append_native_trace("ACTIVATION_LLAMA_BACKEND_INIT_RETURNED_CPU_ONLY");
+            return;
+        }
         // Use the same portable OpenCL policy on every Android GPU vendor.
         // Do not force Q6_K kernel variants globally: let upstream choose the
         // supported implementation for the active OpenCL device.
@@ -936,7 +946,7 @@ Java_com_woogit_aicore_runtime_android_NativeLlamaCpp_nativeInit(JNIEnv *env, jc
         llama_backend_init();
         append_native_trace("ACTIVATION_LLAMA_BACKEND_INIT_RETURNED");
         g_backend_initialized = true;
-    } else {
+    } else if (enable_gpu) {
         append_native_trace("OPENCL_BACKEND_ALREADY_INITIALIZED");
         if (!g_gpu_backend_loaded) {
             // A first probe can fail because Android's vendor OpenCL namespace is
