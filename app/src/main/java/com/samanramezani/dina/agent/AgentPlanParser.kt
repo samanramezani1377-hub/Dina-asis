@@ -1,7 +1,7 @@
 package com.samanramezani.dina.agent
 import org.json.JSONObject
 object AgentPlanParser {
- private val allowedTools=setOf("find_customer","find_product","calculate_total","create_invoice","send_invoice")
+ private val allowedTools=setOf("find_customer","find_product","calculate_total","create_invoice","confirm_invoice","send_invoice")
  fun parse(modelOutput:String):AgentPlan {
   val jsonText=extractJson(modelOutput); val root=JSONObject(jsonText)
   val questions=root.optJSONArray("clarification_questions")?.let { a -> (0 until a.length()).mapNotNull { a.optString(it).takeIf(String::isNotBlank) } }.orEmpty()
