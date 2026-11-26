@@ -33,9 +33,9 @@ class AgentTaskQueue(context: Context, private val engine: DinaAgentEngine, priv
             update(task.id) { it.copy(status = TaskStatus.RUNNING) }
             try {
                 val report = engine.executeRequest(task.request)
-                val status = when {
-                    report.contains("\\\"status\\\": \\\"NEEDS_INPUT\\\"") -> TaskStatus.NEEDS_INPUT
-                    report.contains("\\\"status\\\": \\\"COMPLETED\\\"") -> TaskStatus.COMPLETED
+                val status = when (JSONObject(report).optString("status")) {
+                    "NEEDS_INPUT" -> TaskStatus.NEEDS_INPUT
+                    "COMPLETED" -> TaskStatus.COMPLETED
                     else -> TaskStatus.FAILED
                 }
                 File(reports, "${task.id}.json").writeText(report)
