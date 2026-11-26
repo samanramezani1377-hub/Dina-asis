@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
+data class NativeGenerationStats(val generatedTokens: Int, val generationMs: Long, val prefillMs: Long, val decodeMs: Long)
+
 object NativeLlamaCpp {
     private const val TAG = "AIChatRuntime"
     private const val PREFLIGHT_FILE = "ai-chat-model-preflight.txt"
@@ -126,7 +128,7 @@ object NativeLlamaCpp {
 
     fun countTokens(prompt: String): Int = nativeCountTokens(prompt)
 
-    fun generate(prompt: String, maxTokens: Int, temperature: Float, topK: Int, topP: Float, minP: Float, cachePrefixTokens: Int = 0, continuationPrefixTokens: Int = 0): Flow<String> = callbackFlow {
+    fun generate(prompt: String, maxTokens: Int, temperature: Float, topK: Int, topP: Float, minP: Float, cachePrefixTokens: Int = 0, continuationPrefixTokens: Int = 0, onStats: ((NativeGenerationStats) -> Unit)? = null): Flow<String> = callbackFlow {
         val listener = object : TokenListener {
             override fun onToken(token: String) {
                 // JNI callbacks are synchronous and cannot suspend. The default callbackFlow
@@ -137,6 +139,9 @@ object NativeLlamaCpp {
                 if (result.isFailure && !result.isClosed) {
                     Log.e(TAG, "STREAM_TOKEN_ENQUEUE_FAILED: generated token was not queued")
                 }
+            }
+            override fun onGenerationStats(generatedTokens: Int, generationMs: Long, prefillMs: Long, decodeMs: Long) {
+                onStats?.invoke(NativeGenerationStats(generatedTokens, generationMs, prefillMs, decodeMs))
             }
         }
         val worker = launch {
@@ -160,7 +165,10 @@ object NativeLlamaCpp {
     fun runtimeInfo(): String = nativeRuntimeInfo()
     fun contextLength(): Int = nativeContextLength()
 
-    private interface TokenListener { fun onToken(token: String) }
+    private interface TokenListener {
+        fun onToken(token: String)
+        fun onGenerationStats(generatedTokens: Int, generationMs: Long, prefillMs: Long, decodeMs: Long)
+    }
     @JvmStatic private external fun nativeSetCacheDirectory(path: String): Boolean
     @JvmStatic private external fun nativeInit(enableGpu: Boolean)
     @JvmStatic private external fun nativeInstallFatalHandlers()

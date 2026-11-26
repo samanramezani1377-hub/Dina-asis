@@ -1607,6 +1607,16 @@ Java_com_woogit_aicore_runtime_android_NativeLlamaCpp_nativeGenerate(
         " decodeMs=" + std::to_string(decode_ms) +
         " decodeTokensPerSec=" + std::to_string(decode_tokens_per_sec) +
         " streamChunkTokens=" + std::to_string(kStreamChunkTokens)).c_str());
+    jclass stats_listener_class = env->GetObjectClass(listener);
+    jmethodID on_generation_stats = stats_listener_class
+        ? env->GetMethodID(stats_listener_class, "onGenerationStats", "(IJJJ)V") : nullptr;
+    if (on_generation_stats) {
+        const auto prefill_ms = std::chrono::duration_cast<std::chrono::milliseconds>(prefill_finished_at - generation_started_at).count();
+        env->CallVoidMethod(listener, on_generation_stats, static_cast<jint>(generated),
+            static_cast<jlong>(generation_ms), static_cast<jlong>(prefill_ms), static_cast<jlong>(decode_ms));
+        if (env->ExceptionCheck()) env->ExceptionClear();
+    }
+    if (stats_listener_class) env->DeleteLocalRef(stats_listener_class);
     checkpoint(result == 0 ? "NATIVE_GENERATE_RETURNED_SUCCESS" : "NATIVE_GENERATE_RETURNED_FAILURE");
     return result;
 }
